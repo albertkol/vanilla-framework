@@ -146,7 +146,23 @@ def global_template_context():
     version_parts = VANILLA_VERSION.split(".")
     version_minor = f"{version_parts[0]}.{version_parts[1]}"
 
-    return {"version": VANILLA_VERSION, "versionMinor": version_minor, "path": flask.request.path}
+    try:
+        index_page_paths = discourse_docs.parser.navigations[""]["nav_items"]
+        navigation_urls = [url["path"] for url in index_page_paths]
+    except (KeyError, TypeError):
+        navigation_urls = []
+
+    docs_slug = flask.request.path.replace("/docs/", "")
+    docs_slug = docs_slug.replace("/design/", "")
+    docs_slug = docs_slug.replace("/accessibility", "")
+
+    return {
+        "version": VANILLA_VERSION,
+        "versionMinor": version_minor,
+        "path": flask.request.path,
+        "show_documentation_menu": docs_slug in navigation_urls,
+        "slug": docs_slug,
+    }
 
 
 @app.context_processor
@@ -209,7 +225,7 @@ app.add_url_rule(
         session=session,
         site="vanillaframework.io/docs",
         template_path="docs/search.html",
-        search_engine_id="adb2397a224a1fe55" # https://cse.google.co.uk/cse/setup/basic?cx=adb2397a224a1fe55
+        search_engine_id="adb2397a224a1fe55",  # https://cse.google.co.uk/cse/setup/basic?cx=adb2397a224a1fe55
     ),
 )
 app.add_url_rule("/<path:subpath>", view_func=template_finder_view)
@@ -219,7 +235,7 @@ discourse_docs = Docs(
         api=DiscourseAPI(
             base_url="https://discourse.ubuntu.com/", session=session
         ),
-        index_topic_id=27037, # https://discourse.ubuntu.com/t/design-system-website-config/27037
+        index_topic_id=27037,  # https://discourse.ubuntu.com/t/design-system-website-config/27037
         url_prefix="/design",
     ),
     document_template="/_layouts/docs_discourse.html",
